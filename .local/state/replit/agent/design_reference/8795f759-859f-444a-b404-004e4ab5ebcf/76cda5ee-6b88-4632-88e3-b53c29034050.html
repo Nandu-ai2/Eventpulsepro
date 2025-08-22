@@ -1,0 +1,1155 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EventPulse - Discover Amazing Events</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366F1',
+            secondary: '#8B5CF6',
+            success: '#10B981',
+            warning: '#F59E0B',
+            danger: '#EF4444',
+          },
+          fontFamily: {
+            'inter': ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #F9FAFB;
+      color: #111827;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    .hero-gradient {
+      background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+    }
+    
+    .card-hover {
+      transition: all 0.2s ease-in-out;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.95);
+    }
+    
+    .modal-backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal-animate {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .rsvp-option {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .rsvp-option:hover {
+      background-color: #F9FAFB;
+      border-color: #6366F1;
+    }
+    
+    .rsvp-option:has(input:checked) {
+      border-color: #6366F1;
+      background-color: #EEF2FF;
+    }
+
+    @media (max-width: 768px) {
+      .hero-search-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .event-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .filter-sidebar {
+        width: 100% !important;
+        position: static !important;
+      }
+    }
+
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #6366F1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .alert.success {
+      background-color: #D1FAE5;
+      border: 1px solid #10B981;
+      color: #065F46;
+    }
+
+    .alert.error {
+      background-color: #FEE2E2;
+      border: 1px solid #EF4444;
+      color: #991B1B;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .debug-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      z-index: 1000;
+    }
+
+    .debug-panel.hidden {
+      display: none;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-online { background-color: #10B981; }
+    .status-offline { background-color: #EF4444; }
+    .status-loading { background-color: #F59E0B; animation: pulse 2s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Debug Panel -->
+  <div id="debugPanel" class="debug-panel">
+    <div class="flex justify-between items-center mb-3">
+      <h4 class="font-semibold text-gray-900">Backend Status</h4>
+      <button onclick="toggleDebugPanel()" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="space-y-2 text-sm">
+      <div class="flex items-center">
+        <span id="serverStatus" class="status-indicator status-offline"></span>
+        <span>Server: <span id="serverStatusText">Checking...</span></span>
+      </div>
+      <div class="flex items-center">
+        <span id="dbStatus" class="status-indicator status-offline"></span>
+        <span>Database: <span id="dbStatusText">Unknown</span></span>
+      </div>
+      <div class="text-xs text-gray-500 mt-2">
+        API: <span id="apiUrl">http://localhost:3000</span>
+      </div>
+      <button onclick="testConnection()" class="w-full mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
+        Test Connection
+      </button>
+      <button onclick="clearStorage()" class="w-full mt-1 px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600">
+        Clear Cache
+      </button>
+    </div>
+  </div>
+
+  <!-- Debug Toggle Button -->
+  <button onclick="toggleDebugPanel()" class="fixed bottom-5 right-5 z-50 bg-gray-800 text-white p-3 rounded-full shadow-lg hover:bg-gray-700 transition-colors">
+    <i class="fas fa-bug"></i>
+  </button>
+
+  <!-- Navigation -->
+  <nav class="sticky-nav bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center space-x-8">
+          <div class="flex items-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+            <span class="text-xl font-bold text-gray-900">EventPulse</span>
+          </div>
+          <div class="hidden md:flex space-x-6">
+            <a href="#" onclick="showEventsSection()" class="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium">Discover</a>
+            <a href="#" onclick="showMyEventsSection()" class="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium">My Events</a>
+            <a href="#" onclick="showCreateEventSection()" class="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium">Create Event</a>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="relative">
+            <input type="search" placeholder="Search events..." 
+                   class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                   id="searchInput" onkeyup="handleSearch()" />
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          </div>
+          <div class="relative">
+            <button class="flex items-center space-x-2 bg-gray-100 rounded-full p-2 hover:bg-gray-200 transition-colors duration-200" onclick="toggleUserMenu()">
+              <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center">
+                <span class="text-white text-sm font-semibold" id="userInitials">U</span>
+              </div>
+              <span class="hidden sm:block text-sm font-medium text-gray-700" id="userName">User</span>
+            </button>
+            <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200">
+              <div class="py-2">
+                <button onclick="showLoginModal()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Login / Register</button>
+                <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="logoutBtn" style="display: none;">Logout</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Alert Messages -->
+  <div id="alertContainer" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+    <div id="successAlert" class="alert success">
+      <div class="flex items-center">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span id="successMessage"></span>
+      </div>
+    </div>
+    <div id="errorAlert" class="alert error">
+      <div class="flex items-center">
+        <i class="fas fa-exclamation-circle mr-2"></i>
+        <span id="errorMessage"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero-gradient py-16 text-white" id="heroSection">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-10">
+        <h1 class="text-4xl md:text-6xl font-bold mb-4">Discover Amazing Events</h1>
+        <p class="text-xl text-purple-100 max-w-2xl mx-auto">Find and join events that match your interests. Connect with like-minded people in your city.</p>
+      </div>
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 hero-search-grid">
+            <div class="md:col-span-2">
+              <input type="text" placeholder="What are you interested in?" 
+                     class="w-full px-4 py-3 rounded-lg text-gray-900 focus:ring-2 focus:ring-white focus:outline-none border-0"
+                     id="interestInput" />
+            </div>
+            <div>
+              <select class="w-full px-4 py-3 rounded-lg text-gray-900 focus:ring-2 focus:ring-white focus:outline-none border-0" id="locationSelect">
+                <option value="all">All Cities</option>
+                <option value="san francisco">San Francisco, CA</option>
+                <option value="new york">New York, NY</option>
+                <option value="los angeles">Los Angeles, CA</option>
+                <option value="chicago">Chicago, IL</option>
+              </select>
+            </div>
+            <button class="bg-white text-indigo-600 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors duration-200" onclick="searchEvents()">
+              <i class="fas fa-search mr-2"></i>Find Events
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Event Categories -->
+  <section class="py-8 bg-white border-b border-gray-200" id="categoriesSection">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-wrap justify-center gap-4" id="categoryButtons">
+        <button class="px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors duration-200" data-category="all">All Events</button>
+        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200" data-category="technology">Technology</button>
+        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200" data-category="business">Business</button>
+        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200" data-category="health">Health</button>
+        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200" data-category="sports">Sports</button>
+        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200" data-category="arts">Arts</button>
+        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-200" data-category="music">Music</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="mainContent">
+    <!-- Events Section -->
+    <div id="eventsSection">
+      <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Sidebar Filters -->
+        <aside class="lg:w-1/4 filter-sidebar">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-24">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Filters</h3>
+            <!-- Date Filter -->
+            <div class="mb-6">
+              <h4 class="text-sm font-medium text-gray-700 mb-3">Date</h4>
+              <div class="space-y-2">
+                <label class="flex items-center">
+                  <input type="radio" name="date" value="any" checked class="text-indigo-600 focus:ring-indigo-600" onchange="filterEvents()" />
+                  <span class="ml-2 text-sm text-gray-600">Any date</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="radio" name="date" value="week" class="text-indigo-600 focus:ring-indigo-600" onchange="filterEvents()" />
+                  <span class="ml-2 text-sm text-gray-600">This week</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="radio" name="date" value="weekend" class="text-indigo-600 focus:ring-indigo-600" onchange="filterEvents()" />
+                  <span class="ml-2 text-sm text-gray-600">This weekend</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="radio" name="date" value="next-week" class="text-indigo-600 focus:ring-indigo-600" onchange="filterEvents()" />
+                  <span class="ml-2 text-sm text-gray-600">Next week</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Price Filter -->
+            <div class="mb-6">
+              <h4 class="text-sm font-medium text-gray-700 mb-3">Price</h4>
+              <div class="space-y-2">
+                <label class="flex items-center">
+                  <input type="checkbox" checked class="text-indigo-600 focus:ring-indigo-600" id="freeFilter" onchange="filterEvents()" />
+                  <span class="ml-2 text-sm text-gray-600">Free</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="checkbox" checked class="text-indigo-600 focus:ring-indigo-600" id="paidFilter" onchange="filterEvents()" />
+                  <span class="ml-2 text-sm text-gray-600">Paid</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Distance Filter -->
+            <div>
+              <h4 class="text-sm font-medium text-gray-700 mb-3">Distance</h4>
+              <select class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent" onchange="filterEvents()" id="distanceSelect">
+                <option value="any">Any distance</option>
+                <option value="5">Within 5 miles</option>
+                <option value="10">Within 10 miles</option>
+                <option value="25">Within 25 miles</option>
+              </select>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Events Grid -->
+        <div class="lg:w-3/4">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Upcoming Events</h2>
+            <div class="flex items-center space-x-2">
+              <span class="text-sm text-gray-500" id="eventCount">Loading events...</span>
+              <button onclick="loadEvents()" class="text-indigo-600 hover:text-indigo-700 transition-colors">
+                <i class="fas fa-refresh"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading State -->
+          <div id="loadingState" class="text-center py-8">
+            <div class="loading-spinner"></div>
+            <p class="text-gray-600 mt-4">Loading amazing events...</p>
+          </div>
+
+          <!-- Error State -->
+          <div id="errorState" class="text-center py-8 hidden">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+              <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-4"></i>
+              <h3 class="text-lg font-semibold text-red-800 mb-2">Unable to Load Events</h3>
+              <p class="text-red-600 mb-4" id="errorStateMessage">Please check your connection and try again.</p>
+              <button onclick="loadEvents()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
+                <i class="fas fa-retry mr-2"></i>Try Again
+              </button>
+            </div>
+          </div>
+
+          <!-- Events Grid -->
+          <div id="eventsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 event-grid">
+            <!-- Events will be dynamically loaded here -->
+          </div>
+
+          <!-- Empty State -->
+          <div id="emptyState" class="text-center py-12 hidden">
+            <i class="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Events Found</h3>
+            <p class="text-gray-600 mb-4">Try adjusting your filters or search terms.</p>
+            <button onclick="clearFilters()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backend Setup Instructions -->
+    <div id="setupInstructions" class="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
+      <h3 class="text-lg font-semibold text-blue-900 mb-4">
+        <i class="fas fa-info-circle mr-2"></i>Backend Setup Instructions
+      </h3>
+      <div class="space-y-4 text-sm text-blue-800">
+        <div>
+          <h4 class="font-semibold mb-2">1. Install Dependencies:</h4>
+          <code class="bg-blue-100 px-2 py-1 rounded text-xs">npm install express cors postgres dotenv</code>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-2">2. Create .env file with:</h4>
+          <pre class="bg-blue-100 p-2 rounded text-xs font-mono">DATABASE_URL=postgresql://username:password@hostname:port/database
+PORT=3000</pre>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-2">3. Create database tables:</h4>
+          <pre class="bg-blue-100 p-2 rounded text-xs font-mono">CREATE TABLE events (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  date TIMESTAMP,
+  location VARCHAR(255),
+  category VARCHAR(100),
+  price DECIMAL(10,2) DEFAULT 0,
+  image_url TEXT,
+  organizer VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rsvps (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER REFERENCES events(id),
+  user_id VARCHAR(255),
+  status VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(event_id, user_id)
+);</pre>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-2">4. Start the server:</h4>
+          <code class="bg-blue-100 px-2 py-1 rounded text-xs">node server.js</code>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-2">5. Serve frontend with HTTP server:</h4>
+          <code class="bg-blue-100 px-2 py-1 rounded text-xs">python -m http.server 8080</code> or
+          <code class="bg-blue-100 px-2 py-1 rounded text-xs">npx serve .</code>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Event Detail Modal -->
+  <div id="eventModal" class="hidden fixed inset-0 z-50 modal-backdrop">
+    <div class="flex items-center justify-center min-h-screen px-4 py-8">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full modal-animate">
+        <div class="relative">
+          <button onclick="closeEventModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+          <!-- Event image -->
+          <div class="h-48 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-xl flex items-center justify-center">
+            <img id="modalEventImage" src="" alt="" class="w-full h-full object-cover rounded-t-xl hidden" />
+            <div id="modalEventImagePlaceholder" class="text-white text-center">
+              <i class="fas fa-calendar-alt text-4xl mb-2"></i>
+              <p class="text-lg font-semibold">Event Image</p>
+            </div>
+          </div>
+          
+          <div class="p-6">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h2 id="modalEventTitle" class="text-2xl font-bold text-gray-900 mb-2">Event Title</h2>
+                <div class="flex items-center text-sm text-gray-600 space-x-4">
+                  <span><i class="fas fa-calendar mr-1"></i><span id="modalEventDate">Date</span></span>
+                  <span><i class="fas fa-map-marker-alt mr-1"></i><span id="modalEventLocation">Location</span></span>
+                </div>
+              </div>
+              <span id="modalEventPrice" class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">Free</span>
+            </div>
+            
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">About this event</h3>
+              <p id="modalEventDescription" class="text-gray-600 leading-relaxed">Event description will appear here...</p>
+            </div>
+            
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3">RSVP for this event</h3>
+              <div class="grid grid-cols-3 gap-3">
+                <label class="rsvp-option border-2 border-gray-200 rounded-lg p-3 text-center">
+                  <input type="radio" name="rsvp" value="going" class="sr-only" />
+                  <i class="fas fa-check-circle text-green-500 text-xl mb-1"></i>
+                  <div class="text-sm font-medium">Going</div>
+                </label>
+                <label class="rsvp-option border-2 border-gray-200 rounded-lg p-3 text-center">
+                  <input type="radio" name="rsvp" value="maybe" class="sr-only" />
+                  <i class="fas fa-question-circle text-yellow-500 text-xl mb-1"></i>
+                  <div class="text-sm font-medium">Maybe</div>
+                </label>
+                <label class="rsvp-option border-2 border-gray-200 rounded-lg p-3 text-center">
+                  <input type="radio" name="rsvp" value="not-going" class="sr-only" />
+                  <i class="fas fa-times-circle text-red-500 text-xl mb-1"></i>
+                  <div class="text-sm font-medium">Can't Go</div>
+                </label>
+              </div>
+            </div>
+            
+            <div class="flex space-x-3">
+              <button onclick="submitRSVP()" class="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200">
+                Confirm RSVP
+              </button>
+              <button onclick="shareEvent()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors duration-200">
+                <i class="fas fa-share mr-2"></i>Share
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let allEvents = [];
+    let filteredEvents = [];
+    let currentUser = null;
+    let isLoading = false;
+    
+    // API Configuration
+    const API_BASE_URL = 'http://localhost:3000';
+    
+    // Application state
+    const state = {
+      currentCategory: 'all',
+      searchTerm: '',
+      filters: {
+        date: 'any',
+        price: { free: true, paid: true },
+        distance: 'any'
+      }
+    };
+
+    // Utility Functions
+    function showAlert(message, type = 'success') {
+      const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+      const messageId = type === 'success' ? 'successMessage' : 'errorMessage';
+      
+      document.getElementById(messageId).textContent = message;
+      document.getElementById(alertId).classList.add('show');
+      
+      setTimeout(() => {
+        document.getElementById(alertId).classList.remove('show');
+      }, 5000);
+    }
+
+    function formatDate(dateString) {
+      const options = { 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      return new Date(dateString).toLocaleDateString('en-US', options);
+    }
+
+    function formatPrice(price) {
+      return price === 0 || price === null ? 'Free' : `$${price}`;
+    }
+
+    // Debug Functions
+    function toggleDebugPanel() {
+      const panel = document.getElementById('debugPanel');
+      panel.classList.toggle('hidden');
+    }
+
+    async function testConnection() {
+      updateServerStatus('loading', 'Testing...');
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/events`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          mode: 'cors'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          updateServerStatus('online', `Connected (${data.length} events)`);
+          updateDbStatus('online', 'Connected');
+          showAlert('Backend connection successful!', 'success');
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      } catch (error) {
+        updateServerStatus('offline', `Error: ${error.message}`);
+        updateDbStatus('offline', 'Connection failed');
+        showAlert(`Connection failed: ${error.message}`, 'error');
+        console.error('Connection test failed:', error);
+      }
+    }
+
+    function updateServerStatus(status, text) {
+      const indicator = document.getElementById('serverStatus');
+      const statusText = document.getElementById('serverStatusText');
+      
+      indicator.className = `status-indicator status-${status}`;
+      statusText.textContent = text;
+    }
+
+    function updateDbStatus(status, text) {
+      const indicator = document.getElementById('dbStatus');
+      const statusText = document.getElementById('dbStatusText');
+      
+      indicator.className = `status-indicator status-${status}`;
+      statusText.textContent = text;
+    }
+
+    function clearStorage() {
+      localStorage.clear();
+      sessionStorage.clear();
+      showAlert('Cache cleared successfully!', 'success');
+    }
+
+    // API Functions
+    async function loadEvents() {
+      if (isLoading) return;
+      
+      isLoading = true;
+      updateServerStatus('loading', 'Loading...');
+      
+      // Show loading state
+      document.getElementById('loadingState').style.display = 'block';
+      document.getElementById('errorState').style.display = 'none';
+      document.getElementById('eventsGrid').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'none';
+      
+      try {
+        console.log('Fetching events from:', `${API_BASE_URL}/events`);
+        
+        const response = await fetch(`${API_BASE_URL}/events`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          mode: 'cors',
+          cache: 'no-cache'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const events = await response.json();
+        console.log('Events loaded:', events);
+        
+        allEvents = events.length ? events : getSampleEvents();
+        filteredEvents = [...allEvents];
+        
+        updateServerStatus('online', `Connected (${events.length} events)`);
+        updateDbStatus('online', 'Connected');
+        
+        renderEvents();
+        updateEventCount();
+        
+      } catch (error) {
+        console.error('Error loading events:', error);
+        
+        updateServerStatus('offline', `Error: ${error.message}`);
+        updateDbStatus('offline', 'Connection failed');
+        
+        // Show error state
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('errorState').style.display = 'block';
+        document.getElementById('errorStateMessage').textContent = 
+          `Failed to load events: ${error.message}. Using sample data for demonstration.`;
+        
+        // Fallback to sample events
+        allEvents = getSampleEvents();
+        filteredEvents = [...allEvents];
+        renderEvents();
+        updateEventCount();
+        
+        showAlert(`Backend connection failed: ${error.message}. Using sample data.`, 'error');
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    function getSampleEvents() {
+      return [
+        {
+          id: 1,
+          title: "Tech Meetup: AI & Machine Learning",
+          description: "Join us for an exciting discussion about the latest trends in AI and machine learning. Industry experts will share insights and experiences.",
+          date: "2024-02-15T18:00:00",
+          location: "San Francisco, CA",
+          category: "technology",
+          price: 0,
+          image_url: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+          organizer: "SF Tech Community",
+          attendees: 156
+        },
+        {
+          id: 2,
+          title: "Startup Pitch Night",
+          description: "Watch innovative startups pitch their ideas to investors and industry leaders. Network with entrepreneurs and potential collaborators.",
+          date: "2024-02-18T19:00:00",
+          location: "New York, NY",
+          category: "business",
+          price: 25.00,
+          image_url: "https://images.unsplash.com/photo-1556761175-b413da4baf72?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+          organizer: "NYC Startup Hub",
+          attendees: 89
+        },
+        {
+          id: 3,
+          title: "Yoga in the Park",
+          description: "Start your weekend with a refreshing yoga session in the beautiful Golden Gate Park. All levels welcome!",
+          date: "2024-02-17T08:00:00",
+          location: "San Francisco, CA",
+          category: "health",
+          price: 0,
+          image_url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+          organizer: "SF Wellness Group",
+          attendees: 45
+        },
+        {
+          id: 4,
+          title: "Basketball Tournament",
+          description: "Join our monthly basketball tournament! Teams of all skill levels welcome. Prizes for winners and great fun for everyone.",
+          date: "2024-02-20T14:00:00",
+          location: "Los Angeles, CA",
+          category: "sports",
+          price: 15.00,
+          image_url: "https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+          organizer: "LA Sports League",
+          attendees: 78
+        },
+        {
+          id: 5,
+          title: "Art Gallery Opening",
+          description: "Celebrate the opening of our new contemporary art exhibition featuring local artists. Wine and appetizers included.",
+          date: "2024-02-19T18:30:00",
+          location: "Chicago, IL",
+          category: "arts",
+          price: 0,
+          image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+          organizer: "Chicago Art Collective",
+          attendees: 234
+        },
+        {
+          id: 6,
+          title: "Live Jazz Night",
+          description: "Experience the best of live jazz music with renowned musicians. Enjoy great music, cocktails, and atmosphere.",
+          date: "2024-02-16T20:00:00",
+          location: "New York, NY",
+          category: "music",
+          price: 35.00,
+          image_url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+          organizer: "Blue Note NYC",
+          attendees: 167
+        }
+      ];
+    }
+
+    async function submitRSVP() {
+      const selectedRSVP = document.querySelector('input[name="rsvp"]:checked');
+      if (!selectedRSVP) {
+        showAlert('Please select an RSVP option', 'error');
+        return;
+      }
+
+      const eventId = document.getElementById('eventModal').dataset.eventId;
+      const rsvpData = {
+        event_id: parseInt(eventId),
+        user_id: currentUser?.id || 'guest_' + Date.now(),
+        status: selectedRSVP.value
+      };
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/rsvp`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          mode: 'cors',
+          body: JSON.stringify(rsvpData)
+        });
+
+        if (response.ok) {
+          showAlert('RSVP submitted successfully!', 'success');
+          closeEventModal();
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      } catch (error) {
+        console.error('RSVP submission failed:', error);
+        showAlert('RSVP submitted (demo mode)', 'success'); // Fallback for demo
+        closeEventModal();
+      }
+    }
+
+    // Event Rendering
+    function renderEvents() {
+      const eventsGrid = document.getElementById('eventsGrid');
+      const loadingState = document.getElementById('loadingState');
+      const errorState = document.getElementById('errorState');
+      const emptyState = document.getElementById('emptyState');
+      
+      loadingState.style.display = 'none';
+      errorState.style.display = 'none';
+      
+      if (filteredEvents.length === 0) {
+        eventsGrid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+      
+      emptyState.style.display = 'none';
+      eventsGrid.style.display = 'grid';
+      
+      eventsGrid.innerHTML = filteredEvents.map(event => `
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 card-hover cursor-pointer overflow-hidden" onclick="openEventModal(${event.id})">
+          <div class="aspect-video bg-gradient-to-r from-indigo-500 to-purple-600 relative overflow-hidden">
+            ${event.image_url ? 
+              `<img src="${event.image_url}" alt="${event.title}" class="w-full h-full object-cover" />` :
+              `<div class="flex items-center justify-center h-full text-white">
+                <i class="fas fa-calendar-alt text-3xl"></i>
+              </div>`
+            }
+            <div class="absolute top-3 right-3">
+              <span class="bg-white/90 text-gray-800 px-2 py-1 rounded-full text-xs font-semibold">
+                ${formatPrice(event.price)}
+              </span>
+            </div>
+          </div>
+          <div class="p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="bg-${getCategoryColor(event.category)}-100 text-${getCategoryColor(event.category)}-800 px-2 py-1 rounded-full text-xs font-medium">
+                ${event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+              </span>
+              <span class="text-xs text-gray-500">${event.attendees || 0} attending</span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">${event.title}</h3>
+            <div class="space-y-1 text-sm text-gray-600">
+              <div class="flex items-center">
+                <i class="fas fa-calendar mr-2 text-gray-400"></i>
+                <span>${formatDate(event.date)}</span>
+              </div>
+              <div class="flex items-center">
+                <i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>
+                <span>${event.location}</span>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600 mt-3 line-clamp-2">${event.description}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getCategoryColor(category) {
+      const colors = {
+        technology: 'blue',
+        business: 'green',
+        health: 'pink',
+        sports: 'orange',
+        arts: 'purple',
+        music: 'red',
+        default: 'gray'
+      };
+      return colors[category] || colors.default;
+    }
+
+    function updateEventCount() {
+      const count = filteredEvents.length;
+      document.getElementById('eventCount').textContent = 
+        count === 1 ? '1 event found' : `${count} events found`;
+    }
+
+    // Event Modal Functions
+    function openEventModal(eventId) {
+      const event = allEvents.find(e => e.id === eventId);
+      if (!event) return;
+
+      document.getElementById('eventModal').dataset.eventId = eventId;
+      document.getElementById('modalEventTitle').textContent = event.title;
+      document.getElementById('modalEventDate').textContent = formatDate(event.date);
+      document.getElementById('modalEventLocation').textContent = event.location;
+      document.getElementById('modalEventPrice').textContent = formatPrice(event.price);
+      document.getElementById('modalEventDescription').textContent = event.description;
+
+      // Handle event image
+      const modalImage = document.getElementById('modalEventImage');
+      const placeholder = document.getElementById('modalEventImagePlaceholder');
+      
+      if (event.image_url) {
+        modalImage.src = event.image_url;
+        modalImage.alt = event.title;
+        modalImage.classList.remove('hidden');
+        placeholder.style.display = 'none';
+      } else {
+        modalImage.classList.add('hidden');
+        placeholder.style.display = 'flex';
+      }
+
+      // Clear previous RSVP selection
+      document.querySelectorAll('input[name="rsvp"]').forEach(radio => {
+        radio.checked = false;
+      });
+
+      document.getElementById('eventModal').classList.remove('hidden');
+    }
+
+    function closeEventModal() {
+      document.getElementById('eventModal').classList.add('hidden');
+    }
+
+    function shareEvent() {
+      const eventId = document.getElementById('eventModal').dataset.eventId;
+      const event = allEvents.find(e => e.id === parseInt(eventId));
+      
+      if (navigator.share) {
+        navigator.share({
+          title: event.title,
+          text: event.description,
+          url: window.location.href
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        const url = `${window.location.href}?event=${eventId}`;
+        navigator.clipboard.writeText(url).then(() => {
+          showAlert('Event link copied to clipboard!', 'success');
+        });
+      }
+    }
+
+    // Filter Functions
+    function filterEvents() {
+      const dateFilter = document.querySelector('input[name="date"]:checked').value;
+      const freeFilter = document.getElementById('freeFilter').checked;
+      const paidFilter = document.getElementById('paidFilter').checked;
+      const distanceFilter = document.getElementById('distanceSelect').value;
+
+      filteredEvents = allEvents.filter(event => {
+        // Category filter
+        if (state.currentCategory !== 'all' && event.category !== state.currentCategory) {
+          return false;
+        }
+
+        // Search filter
+        if (state.searchTerm && !event.title.toLowerCase().includes(state.searchTerm.toLowerCase()) &&
+            !event.description.toLowerCase().includes(state.searchTerm.toLowerCase())) {
+          return false;
+        }
+
+        // Date filter
+        const eventDate = new Date(event.date);
+        const now = new Date();
+        const oneWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        if (dateFilter === 'week' && eventDate > oneWeek) return false;
+        if (dateFilter === 'weekend') {
+          const dayOfWeek = eventDate.getDay();
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) return false;
+        }
+
+        // Price filter
+        const isFree = event.price === 0 || event.price === null;
+        const isPaid = event.price > 0;
+        
+        if (!freeFilter && isFree) return false;
+        if (!paidFilter && isPaid) return false;
+
+        return true;
+      });
+
+      renderEvents();
+      updateEventCount();
+    }
+
+    function clearFilters() {
+      // Reset all filters to default
+      document.querySelector('input[value="any"][name="date"]').checked = true;
+      document.getElementById('freeFilter').checked = true;
+      document.getElementById('paidFilter').checked = true;
+      document.getElementById('distanceSelect').value = 'any';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('interestInput').value = '';
+      document.getElementById('locationSelect').value = 'all';
+      
+      state.currentCategory = 'all';
+      state.searchTerm = '';
+      
+      // Reset category buttons
+      document.querySelectorAll('#categoryButtons button').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('bg-gray-100', 'text-gray-700');
+      });
+      document.querySelector('[data-category="all"]').classList.remove('bg-gray-100', 'text-gray-700');
+      document.querySelector('[data-category="all"]').classList.add('bg-indigo-600', 'text-white');
+      
+      filterEvents();
+    }
+
+    // Search Functions
+    function handleSearch() {
+      state.searchTerm = document.getElementById('searchInput').value;
+      filterEvents();
+    }
+
+    function searchEvents() {
+      const interest = document.getElementById('interestInput').value;
+      const location = document.getElementById('locationSelect').value;
+      
+      state.searchTerm = interest;
+      
+      if (location !== 'all') {
+        // Additional location filtering could be implemented here
+      }
+      
+      filterEvents();
+    }
+
+    // Navigation Functions
+    function showEventsSection() {
+      // Implementation for showing events section
+      document.getElementById('eventsSection').style.display = 'block';
+    }
+
+    function showMyEventsSection() {
+      showAlert('My Events feature coming soon!', 'success');
+    }
+
+    function showCreateEventSection() {
+      showAlert('Create Event feature coming soon!', 'success');
+    }
+
+    // User Functions
+    function toggleUserMenu() {
+      const menu = document.getElementById('userMenu');
+      menu.classList.toggle('hidden');
+    }
+
+    function showLoginModal() {
+      showAlert('Login feature coming soon!', 'success');
+    }
+
+    function logout() {
+      currentUser = null;
+      showAlert('Logged out successfully!', 'success');
+    }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', function() {
+      // Category button event listeners
+      document.querySelectorAll('#categoryButtons button').forEach(button => {
+        button.addEventListener('click', function() {
+          // Update visual state
+          document.querySelectorAll('#categoryButtons button').forEach(btn => {
+            btn.classList.remove('bg-indigo-600', 'text-white');
+            btn.classList.add('bg-gray-100', 'text-gray-700');
+          });
+          
+          this.classList.remove('bg-gray-100', 'text-gray-700');
+          this.classList.add('bg-indigo-600', 'text-white');
+          
+          // Update state and filter
+          state.currentCategory = this.dataset.category;
+          filterEvents();
+        });
+      });
+
+      // Close modal when clicking outside
+      document.getElementById('eventModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeEventModal();
+        }
+      });
+
+      // Close user menu when clicking outside
+      document.addEventListener('click', function(e) {
+        const userMenu = document.getElementById('userMenu');
+        const userButton = document.querySelector('[onclick="toggleUserMenu()"]');
+        
+        if (!userMenu.contains(e.target) && !userButton.contains(e.target)) {
+          userMenu.classList.add('hidden');
+        }
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeEventModal();
+          document.getElementById('userMenu').classList.add('hidden');
+        }
+      });
+
+      // Initialize the application
+      testConnection();
+      loadEvents();
+    });
+
+    // Error handling for images
+    function handleImageError(img) {
+      img.style.display = 'none';
+      img.nextElementSibling.style.display = 'flex';
+    }
+
+    // Performance optimization: debounce search
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(handleSearch, 300);
+    });
+  </script>
+</body>
+</html>
