@@ -56,7 +56,7 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
     try {
       await rsvpMutation.mutateAsync({
         eventId: event.id,
-        userId: `user_${Date.now()}`, // In a real app, this would come from auth
+        userId: 1, // In a real app, this would come from auth
         status: rsvpStatus,
       });
 
@@ -103,7 +103,7 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="modal-event">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="modal-event" aria-describedby="modal-description">
         <div className="relative">
           {/* Event image */}
           <div className="h-48 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mb-6">
@@ -135,7 +135,7 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
                   </div>
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-1" />
-                    <span data-testid="text-modal-location">{event.location}</span>
+                    <span data-testid="text-modal-location">{event.city}</span>
                   </div>
                 </div>
               </div>
@@ -152,7 +152,7 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">About this event</h3>
-              <p className="text-gray-600 leading-relaxed" data-testid="text-modal-description">
+              <p id="modal-description" className="text-gray-600 leading-relaxed" data-testid="text-modal-description">
                 {event.description}
               </p>
             </div>

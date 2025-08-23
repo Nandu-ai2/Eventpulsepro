@@ -64,7 +64,7 @@ export default function Home() {
           event.title,
           event.description,
           event.category,
-          event.location,
+          event.city,
           event.organizer
         ].join(' ').toLowerCase();
         

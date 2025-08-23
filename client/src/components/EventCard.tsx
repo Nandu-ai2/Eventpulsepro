@@ -86,7 +86,7 @@ export function EventCard({ event, onClick }: EventCardProps) {
           </div>
           <div className="flex items-center">
             <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-            <span data-testid={`text-location-${event.id}`}>{event.location}</span>
+            <span data-testid={`text-location-${event.id}`}>{event.city}</span>
           </div>
         </div>
         
