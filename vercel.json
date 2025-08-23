@@ -1,14 +1,43 @@
 {
+  "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
+  "functions": {
+    "api/*.ts": {
+      "runtime": "@vercel/node@3.0.0"
+    }
+  },
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/index.ts"
+      "src": "/api/events",
+      "dest": "/api/events.ts"
+    },
+    {
+      "src": "/api/users",
+      "dest": "/api/users.ts"
+    },
+    {
+      "src": "/api/rsvp",
+      "dest": "/api/rsvp.ts"
+    },
+    {
+      "src": "/api/events/([^/]+)/rsvps",
+      "dest": "/api/events.ts?id=$1&action=rsvps"
+    },
+    {
+      "src": "/api/events/([^/]+)",
+      "dest": "/api/events.ts?id=$1"
+    },
+    {
+      "src": "/api/users/([^/]+)",
+      "dest": "/api/users.ts?id=$1"
     },
     {
       "src": "/(.*)",
       "dest": "/dist/public/$1"
     }
-  ]
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url"
+  }
 }
