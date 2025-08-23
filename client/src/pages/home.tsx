@@ -46,14 +46,17 @@ export default function Home() {
   const handleSearch = (interest: string, location: string) => {
     setFilters(prev => ({ 
       ...prev, 
-      searchTerm: interest,
-      category: location === 'all' ? 'all' : prev.category 
+      searchTerm: interest.toLowerCase(),
+      distanceFilter: location === 'all' ? 'any' : location
     }));
+    setSearchTerm(interest);
     // Scroll to events section
-    const eventsSection = document.querySelector('[data-testid="events-grid"]');
-    if (eventsSection) {
-      eventsSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    setTimeout(() => {
+      const eventsSection = document.querySelector('[data-testid="events-grid"]');
+      if (eventsSection) {
+        eventsSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   const filteredEvents = useMemo(() => {
@@ -65,7 +68,7 @@ export default function Home() {
         return false;
       }
 
-      // Search filter
+      // Search filter - search in title, description, category, city, and organizer
       const searchTerms = [filters.searchTerm, searchTerm].filter(Boolean);
       if (searchTerms.length > 0) {
         const searchQuery = searchTerms.join(' ').toLowerCase();
@@ -78,6 +81,13 @@ export default function Home() {
         ].join(' ').toLowerCase();
         
         if (!eventContent.includes(searchQuery)) {
+          return false;
+        }
+      }
+
+      // Location filter from hero search
+      if (filters.distanceFilter !== 'any' && filters.distanceFilter !== 'all') {
+        if (!event.city.toLowerCase().includes(filters.distanceFilter.toLowerCase())) {
           return false;
         }
       }
@@ -158,7 +168,7 @@ export default function Home() {
                 </button>
                 <button 
                   onClick={() => {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    window.location.href = '/create-event';
                   }}
                   className="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium"
                   data-testid="button-nav-create-event"

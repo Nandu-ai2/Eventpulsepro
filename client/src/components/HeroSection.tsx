@@ -46,10 +46,14 @@ export function HeroSection({ onSearch }: HeroSectionProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Cities</SelectItem>
-                    <SelectItem value="san francisco">San Francisco, CA</SelectItem>
-                    <SelectItem value="new york">New York, NY</SelectItem>
-                    <SelectItem value="los angeles">Los Angeles, CA</SelectItem>
-                    <SelectItem value="chicago">Chicago, IL</SelectItem>
+                    <SelectItem value="San Francisco">San Francisco, CA</SelectItem>
+                    <SelectItem value="New York">New York, NY</SelectItem>
+                    <SelectItem value="Los Angeles">Los Angeles, CA</SelectItem>
+                    <SelectItem value="Boston">Boston, MA</SelectItem>
+                    <SelectItem value="Chicago">Chicago, IL</SelectItem>
+                    <SelectItem value="Nashville">Nashville, TN</SelectItem>
+                    <SelectItem value="Austin">Austin, TX</SelectItem>
+                    <SelectItem value="Seattle">Seattle, WA</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
