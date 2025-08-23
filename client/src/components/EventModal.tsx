@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -103,7 +104,7 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="modal-event" aria-describedby="modal-description">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="modal-event">
         <div className="relative">
           {/* Event image */}
           <div className="h-48 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mb-6">
@@ -123,11 +124,14 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
           </div>
           
           <DialogHeader className="mb-4">
+            <DialogTitle className="text-2xl font-bold mb-2" data-testid="text-modal-title">
+              {event.title}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Event details for {event.title}
+            </DialogDescription>
             <div className="flex items-start justify-between">
               <div>
-                <DialogTitle className="text-2xl font-bold mb-2" data-testid="text-modal-title">
-                  {event.title}
-                </DialogTitle>
                 <div className="flex items-center text-sm text-gray-600 space-x-4">
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />
@@ -139,20 +143,22 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
                   </div>
                 </div>
               </div>
-              <Badge 
-                variant={formatPrice(event.price) === 'Free' ? 'secondary' : 'default'}
-                className="bg-green-100 text-green-800"
-                data-testid="text-modal-price"
-              >
-                {formatPrice(event.price)}
-              </Badge>
+              <div>
+                <Badge 
+                  variant={formatPrice(event.price) === 'Free' ? 'secondary' : 'default'}
+                  className="bg-green-100 text-green-800"
+                  data-testid="text-modal-price"
+                >
+                  {formatPrice(event.price)}
+                </Badge>
+              </div>
             </div>
           </DialogHeader>
           
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">About this event</h3>
-              <p id="modal-description" className="text-gray-600 leading-relaxed" data-testid="text-modal-description">
+              <p className="text-gray-600 leading-relaxed" data-testid="text-modal-description">
                 {event.description}
               </p>
             </div>
@@ -161,31 +167,37 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">RSVP for this event</h3>
               <RadioGroup value={rsvpStatus} onValueChange={setRsvpStatus} className="grid grid-cols-3 gap-3">
                 <Label 
-                  htmlFor="going" 
-                  className="border-2 border-gray-200 rounded-lg p-3 text-center cursor-pointer transition-all hover:border-indigo-300 data-[state=checked]:border-indigo-500 data-[state=checked]:bg-indigo-50"
+                  htmlFor="Yes" 
+                  className={`border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:border-indigo-300 ${
+                    rsvpStatus === 'Yes' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
+                  }`}
                   data-testid="label-rsvp-going"
                 >
-                  <RadioGroupItem value="going" id="going" className="sr-only" />
+                  <RadioGroupItem value="Yes" id="Yes" className="sr-only" />
                   <CheckCircle className="h-6 w-6 text-green-500 mx-auto mb-1" />
                   <div className="text-sm font-medium">Going</div>
                 </Label>
                 
                 <Label 
-                  htmlFor="maybe" 
-                  className="border-2 border-gray-200 rounded-lg p-3 text-center cursor-pointer transition-all hover:border-indigo-300 data-[state=checked]:border-indigo-500 data-[state=checked]:bg-indigo-50"
+                  htmlFor="Maybe" 
+                  className={`border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:border-indigo-300 ${
+                    rsvpStatus === 'Maybe' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
+                  }`}
                   data-testid="label-rsvp-maybe"
                 >
-                  <RadioGroupItem value="maybe" id="maybe" className="sr-only" />
+                  <RadioGroupItem value="Maybe" id="Maybe" className="sr-only" />
                   <HelpCircle className="h-6 w-6 text-yellow-500 mx-auto mb-1" />
                   <div className="text-sm font-medium">Maybe</div>
                 </Label>
                 
                 <Label 
-                  htmlFor="not-going" 
-                  className="border-2 border-gray-200 rounded-lg p-3 text-center cursor-pointer transition-all hover:border-indigo-300 data-[state=checked]:border-indigo-500 data-[state=checked]:bg-indigo-50"
+                  htmlFor="No" 
+                  className={`border-2 rounded-lg p-3 text-center cursor-pointer transition-all hover:border-indigo-300 ${
+                    rsvpStatus === 'No' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
+                  }`}
                   data-testid="label-rsvp-not-going"
                 >
-                  <RadioGroupItem value="not-going" id="not-going" className="sr-only" />
+                  <RadioGroupItem value="No" id="No" className="sr-only" />
                   <XCircle className="h-6 w-6 text-red-500 mx-auto mb-1" />
                   <div className="text-sm font-medium">Can't Go</div>
                 </Label>

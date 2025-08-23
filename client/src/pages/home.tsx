@@ -44,7 +44,16 @@ export default function Home() {
   };
 
   const handleSearch = (interest: string, location: string) => {
-    setFilters(prev => ({ ...prev, searchTerm: interest }));
+    setFilters(prev => ({ 
+      ...prev, 
+      searchTerm: interest,
+      category: location === 'all' ? 'all' : prev.category 
+    }));
+    // Scroll to events section
+    const eventsSection = document.querySelector('[data-testid="events-grid"]');
+    if (eventsSection) {
+      eventsSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const filteredEvents = useMemo(() => {
@@ -130,15 +139,32 @@ export default function Home() {
                 <span className="text-xl font-bold text-gray-900">EventPulse</span>
               </div>
               <div className="hidden md:flex space-x-6">
-                <a href="#" className="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium">
+                <button 
+                  onClick={() => handleClearFilters()}
+                  className="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium"
+                  data-testid="button-nav-discover"
+                >
                   Discover
-                </a>
-                <a href="#" className="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium">
+                </button>
+                <button 
+                  onClick={() => {
+                    setFilters(prev => ({ ...prev, category: 'all' }));
+                    setSearchTerm('');
+                  }}
+                  className="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium"
+                  data-testid="button-nav-my-events"
+                >
                   My Events
-                </a>
-                <a href="#" className="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium">
+                </button>
+                <button 
+                  onClick={() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-gray-700 hover:text-indigo-600 transition-colors duration-200 font-medium"
+                  data-testid="button-nav-create-event"
+                >
                   Create Event
-                </a>
+                </button>
               </div>
             </div>
             <div className="flex items-center space-x-4">
