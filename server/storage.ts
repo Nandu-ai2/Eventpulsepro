@@ -1,8 +1,14 @@
-import { type Event, type InsertEvent, type Rsvp, type InsertRsvp, events, rsvps } from "@shared/schema";
+import { type User, type InsertUser, type Event, type InsertEvent, type Rsvp, type InsertRsvp, users, events, rsvps } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations
+  getAllUsers(): Promise<User[]>;
+  getUserById(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  
   // Event operations
   getAllEvents(): Promise<Event[]>;
   getEventById(id: number): Promise<Event | undefined>;
@@ -11,11 +17,36 @@ export interface IStorage {
   // RSVP operations
   createRsvp(rsvp: InsertRsvp): Promise<Rsvp>;
   getRsvpsByEventId(eventId: number): Promise<Rsvp[]>;
-  getRsvpByEventAndUser(eventId: number, userId: string): Promise<Rsvp | undefined>;
-  updateRsvp(eventId: number, userId: string, status: string): Promise<Rsvp>;
+  getRsvpByEventAndUser(eventId: number, userId: number): Promise<Rsvp | undefined>;
+  updateRsvp(eventId: number, userId: number, status: string): Promise<Rsvp>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // User operations
+  async getAllUsers(): Promise<User[]> {
+    const result = await db.select().from(users).orderBy(users.createdAt);
+    return result;
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
+  }
+
+  // Event operations
   async getAllEvents(): Promise<Event[]> {
     const result = await db.select().from(events).orderBy(events.date);
     return result;
@@ -34,6 +65,7 @@ export class DatabaseStorage implements IStorage {
     return event;
   }
 
+  // RSVP operations
   async createRsvp(rsvpData: InsertRsvp): Promise<Rsvp> {
     // Check if RSVP already exists
     const existing = await this.getRsvpByEventAndUser(rsvpData.eventId, rsvpData.userId);
@@ -54,7 +86,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getRsvpByEventAndUser(eventId: number, userId: string): Promise<Rsvp | undefined> {
+  async getRsvpByEventAndUser(eventId: number, userId: number): Promise<Rsvp | undefined> {
     const [rsvp] = await db
       .select()
       .from(rsvps)
@@ -62,7 +94,7 @@ export class DatabaseStorage implements IStorage {
     return rsvp || undefined;
   }
 
-  async updateRsvp(eventId: number, userId: string, status: string): Promise<Rsvp> {
+  async updateRsvp(eventId: number, userId: number, status: string): Promise<Rsvp> {
     const [rsvp] = await db
       .update(rsvps)
       .set({ status })
